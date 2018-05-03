@@ -27,15 +27,22 @@
 using namespace cv;
 using namespace std;
 using namespace vtk;
+
+static int height = 320;
+static int width = 480;
  
 int main(int argc, char* argv[])
 {
   // Parse command line arguments
-  if(argc != 2)
-  {
-    std::cout << "Usage: " << argv[0] << " Filename(.obj)" << std::endl;
-    return EXIT_FAILURE;
-  }
+  if(argc < 2){
+      cout << "Usage: " << argv[0] << " mesh.obj [texture.png]" << endl;
+      return -1;
+    }
+    string filename = argv[1];
+    string texture_filename = "";
+    if(argc >= 3){
+      texture_filename = argv[2];
+    }
 
   namedWindow( "window_name", CV_WINDOW_AUTOSIZE );
 
@@ -47,14 +54,11 @@ int main(int argc, char* argv[])
   srand (time(NULL));
 
   float rotation = 0;
-
-
-   
-    string filename = argv[1];
+    
 
     vtkSmartPointer<vtkRenderWindow> renderWindow =
       vtkSmartPointer<vtkRenderWindow>::New();
-    renderWindow->SetSize(320, 320);
+    renderWindow->SetSize(width, height);
  
     vtkSmartPointer<vtkOBJReader> reader = 
       vtkSmartPointer<vtkOBJReader>::New();
@@ -68,13 +72,9 @@ int main(int argc, char* argv[])
     actor->SetMapper(mapper);
     actor->AddPosition(0,0,2);
 
-  // Visualize
-  for(int i = 0; i<360; i++){
-    cout << i << endl;
-
     vtkSmartPointer<vtkPNGReader> pngReader = 
       vtkSmartPointer<vtkPNGReader>::New();
-    pngReader->SetFileName("Rabbit_D.png");
+    pngReader->SetFileName(texture_filename.c_str());
     pngReader->Update();
 
     vtkSmartPointer<vtkTexture> texture = 
@@ -84,15 +84,14 @@ int main(int argc, char* argv[])
     texture->InterpolateOn();
 
     actor->SetTexture(texture);
-    /*int random = rand() % 100 - 50;
-    rotation += random;
-    actor->RotateX(rotation/25);*/
 
-/*    vtkSmartPointer<vtkTransform> transform = vtkTransform::New();
-    transform->Scale(1.0/2000.0,1.0/2000.0,1.0/2000.0);
+    double depth_min = 0.1, depth_max = 4.0;
+    double view_angle = 360 * (2.0 * std::atan( height / (2*300.0) ))/(2*M_PI);
+    cout << "Fov: " << view_angle << endl;
 
-    actor->SetUserTransform(transform);*/
-
+  // Visualize
+  for(int i = 0; i<360; i++){
+    cout << i << endl;
 
     actor->AddPosition(0,0,-2);
     actor->RotateWXYZ(1,0,1,0);
@@ -107,9 +106,6 @@ int main(int argc, char* argv[])
     // the camera Y axis points down
     camera->SetViewUp(0,1,0);
 
-    double depth_min = 0.1, depth_max = 4000.0;
-    double view_angle = 360 * (2.0 * std::atan( 320.0 / (2*300.0) ))/(2*M_PI);
-    cout << view_angle << endl;
     // ensure the relevant range of depths are rendered
     camera->SetClippingRange(depth_min, depth_max);
     camera->SetViewAngle(view_angle);
@@ -119,9 +115,6 @@ int main(int argc, char* argv[])
     renderer->SetActiveCamera(camera);
     renderer->AddActor(actor);
     renderer->SetBackground(.0, .0, .0);
-
-    /*vtkSmartPointer<vtkMatrix4x4> matrix = camera->GetProjectionTransformMatrix(renderer);
-    cout << matrix[0][0] << " " << matrix[1][0] << endl; */
 
     renderWindow->AddRenderer(renderer);
     renderWindow->Render();
@@ -150,11 +143,11 @@ int main(int argc, char* argv[])
     vtkSmartPointer<vtkWorldPointPicker> worldPicker = 
       vtkSmartPointer<vtkWorldPointPicker>::New();
 
-    Mat img = Mat::zeros(Size(320,320), CV_32F);
+    Mat img = Mat::zeros(Size(width,height), CV_32F);
     //Mat img = imread("white.exr", CV_LOAD_IMAGE_COLOR);
 
-    for(int x=0; x<320; x++){
-      for(int y=0; y<320; y++){
+    for(int x=0; x<width; x++){
+      for(int y=0; y<height; y++){
         double z = renderWindow->GetZbufferDataAtPoint(x,y);
         double euclidean_distance;
 
@@ -164,34 +157,14 @@ int main(int argc, char* argv[])
           double coords[3];
           worldPicker->Pick(x, y, z, renderer);
           worldPicker->GetPickPosition(coords);
-
-          /*euclidean_distance = sqrt(
-            pow(coords[0], 2) + 
-            pow(coords[1], 2) + 
-            pow(coords[2], 2));
-
-          double max_euclidean_distance = sqrt(
-            pow(2, 2) + 
-            pow(2, 2) + 
-            pow(depth_max, 2));*/
-
-          //euclidean_distance = euclidean_distance*255/max_euclidean_distance;
-          //euclidean_distance = (coords[2])*255/(depth_max);
           euclidean_distance = coords[2];
         }
 
-        //cout << coords[0] << " " << coords[1] << " " << z << " " << endl;
-        img.at<float>(y,x) = euclidean_distance;
-        //img.at<uchar>(y,x) = 255-euclidean_distance;
-        //img.at<uchar>(y,x) = 255-euclidean_distance;  
+        img.at<float>(y,x) = euclidean_distance; 
       }
     }
     stringstream output;
     output << "output/d-" << i << ".exr";
-
-    /*imageWriter->SetFileName(output.str().c_str()); 
-    imageWriter->SetInputConnection(scale->GetOutputPort()); 
-    imageWriter->Write(); */
     imwrite(output.str(), img);
     association << i << " " << output.str() << " " << i << " " << colorFilename.str() << endl;
     groundtruth << i << " 0 0 0 0 1 0 " << i*PI/365 << endl;

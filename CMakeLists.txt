@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.8)
  
-PROJECT(ReadOBJ)
+PROJECT(mesh2depth)
  
 find_package(VTK REQUIRED)
 include(${VTK_USE_FILE})
@@ -12,10 +12,10 @@ MESSAGE(STATUS "Compiling with OpenCV")
 MESSAGE(STATUS "\tOpenCV_INCLUDE_DIRS: " ${OpenCV_INCLUDE_DIRS})
 MESSAGE(STATUS "\tOpenCV_LIBS: " ${OpenCV_LIBS})
  
-add_executable(ReadOBJ MACOSX_BUNDLE ReadOBJ.cxx)
+add_executable(mesh2depth MACOSX_BUNDLE mesh2depth.cxx)
  
 if(VTK_LIBRARIES)
-  target_link_libraries(ReadOBJ ${VTK_LIBRARIES} ${OpenCV_LIBS})
+  target_link_libraries(mesh2depth ${VTK_LIBRARIES} ${OpenCV_LIBS})
 else()
-  target_link_libraries(ReadOBJ vtkHybrid vtkWidgets)
+  target_link_libraries(mesh2depth vtkHybrid vtkWidgets)
 endif()

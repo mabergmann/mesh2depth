@@ -21,6 +21,7 @@
 #include <sstream>
 #include <fstream>
 #include <string>
+#include <random>
 
 #define PI 3.1415926
 
@@ -30,6 +31,9 @@ using namespace vtk;
 
 static int height = 320;
 static int width = 480;
+
+static bool add_gaussian_noise = true;
+static double gaussian_noise_standard_deviation = 0.2;
  
 int main(int argc, char* argv[])
 {
@@ -158,6 +162,12 @@ int main(int argc, char* argv[])
           worldPicker->Pick(x, y, z, renderer);
           worldPicker->GetPickPosition(coords);
           euclidean_distance = coords[2];
+        }
+
+        if(add_gaussian_noise){
+          normal_distribution<double> distribution(euclidean_distance, gaussian_noise_standard_deviation);
+          default_random_engine generator;
+          euclidean_distance = distribution(generator);
         }
 
         img.at<float>(y,x) = euclidean_distance; 
